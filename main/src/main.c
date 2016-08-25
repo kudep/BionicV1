@@ -245,20 +245,30 @@ static void main_thread_func1 (uint32_t param)
           }
     }
 }
+#define _buf_size      (uint8_t)0x03 
+MDriver_TypeDef  MDrivers[_buf_size];
 static void main_thread_func2 (uint32_t param)
 {
+  periph_mdrive_struct_init(MDrivers+0,GPIOA,GPIO_Pin_2,GPIOA,GPIO_Pin_3);
+  periph_mdrive_struct_init(MDrivers+1,GPIOA,GPIO_Pin_4,GPIOA,GPIO_Pin_5);
+  periph_mdrive_struct_init(MDrivers+2,GPIOA,GPIO_Pin_6,GPIOA,GPIO_Pin_7);
+  periph_mdrive_init(MDrivers,_buf_size);
     /* Test finished, flash slowly for pass, fast for fail */
     while (1)
     {
-        
+        periph_mdrive_task(0x02,0x05,0x2A);
         
     }
 }
 static void main_thread_func3 (uint32_t param)
 {    
+    GPIO_Init(GPIOD,GPIO_Pin_0,GPIO_Mode_Out_PP_High_Fast);
     while (1)
     {
-      
+            GPIO_SetBits(GPIOD,GPIO_Pin_0);
+            for(uint8_t i=0;i<40;i++);
+            GPIO_ResetBits(GPIOD,GPIO_Pin_0);   
+            atomTimerDelay (1);  
     }
 }
 
@@ -268,14 +278,14 @@ char about[99]="Atomthreads v1.3 ports on stm8l152 by Kuznetsov Denis \nData: 11
 char adcinfo[99]="ADC parametrs:\n      Channels used: 1, 2, 3\n      Sampling rate 400 Hz\n";
 uint8_t RisC=FALSE;
 uint8_t adc_buf[ADC_Buf_Size];
-MDriver_TypeDef MDriver_0={GPIOE,GPIO_Pin_1,GPIOE,GPIO_Pin_0};
+//MDriver_TypeDef MDriver_0={GPIOE,GPIO_Pin_1,GPIOE,GPIO_Pin_0};
 static void main_thread_func4 (uint32_t param)
 {
     GPIO_Init(GPIOC,GPIO_Pin_7,GPIO_Mode_Out_PP_High_Fast);
     GPIO_Init(GPIOE,GPIO_Pin_1,GPIO_Mode_Out_PP_High_Fast);
     GPIO_ResetBits(GPIOC,GPIO_Pin_7);
     GPIO_ResetBits(GPIOE,GPIO_Pin_1);
-    periph_mdrive_init(&MDriver_0);
+    //periph_mdrive_init(&MDriver_0);
     periph_adc1_with_DMA_and_TIM2_init(adc_buf,sizeof(adc_buf),ADC_Channels);
     periph_usart1_init();
     while (1)
@@ -299,7 +309,7 @@ static void main_thread_func4 (uint32_t param)
               periph_usart1_bufsend((uint8_t*)about,strlen(about));
           if(0==strcmp(buf,"adcinfo"))
               periph_usart1_bufsend((uint8_t*)adcinfo,strlen(adcinfo));
-          if(0==strcmp(buf,"motorup"))
+         /* if(0==strcmp(buf,"motorup"))
           {
               periph_mdrive_moveup(&MDriver_0);
               periph_mdrive_start(&MDriver_0);
@@ -311,7 +321,7 @@ static void main_thread_func4 (uint32_t param)
           }
           if(0==strcmp(buf,"motorstop"))
               periph_mdrive_stop(&MDriver_0);
-          
+          */
           if(0==strcmp(buf,"adcresult"))
           {
             char tab='\t';
@@ -339,7 +349,8 @@ static void main_thread_func4 (uint32_t param)
           }
           
           
-        }
+        }   
+            //atomTimerDelay (1);  
      }
 }
   char mesg_ok[19]="ATOM_OK \n";
