@@ -12,7 +12,7 @@
 #include "stm8l15x_gpio.h"
 #include "atomtimer.h"
 #define Max_Bufsize     (uint8_t)0x08
-#define PWM_Period     (uint8_t)0x32
+#define PWM_Period     (uint8_t)0x05
 
 typedef struct MDriver_struct
 {

@@ -42,31 +42,41 @@ bool periph_mdrive_task(uint8_t drive_en_reg,uint8_t drive_dir_reg,uint8_t speed
   
   MDriver_TypeDef* pnrt;
   uint8_t reg_mask;
-  for(int i=0;i<bufsize;i++)
-  {
-    pnrt=MDriverx+i;
-    reg_mask=1<<i;
-    if(drive_en_reg&reg_mask)
-    {
-      if(drive_dir_reg&reg_mask)
-      {
-        GPIO_SetBits(pnrt->PH_GPIOx,pnrt->PH_GPIO_Pin);
-      }
-      else
-      {
-        GPIO_ResetBits(pnrt->PH_GPIOx,pnrt->PH_GPIO_Pin);
-      }
-      GPIO_SetBits(pnrt->EN_GPIOx,pnrt->EN_GPIO_Pin);
-    }
-  }
+  if(speed!=0)
+	for(int i=0;i<bufsize;i++)
+	{
+		pnrt=MDriverx+i;
+		reg_mask=1<<i;
+		if(drive_en_reg&reg_mask)
+		{
+			if(drive_dir_reg&reg_mask)
+			{
+				GPIO_SetBits(pnrt->PH_GPIOx,pnrt->PH_GPIO_Pin);
+			}
+			else
+			{
+				GPIO_ResetBits(pnrt->PH_GPIOx,pnrt->PH_GPIO_Pin);
+			}
+			GPIO_SetBits(pnrt->EN_GPIOx,pnrt->EN_GPIO_Pin);
+		}
+		else
+			GPIO_ResetBits(pnrt->EN_GPIOx,pnrt->EN_GPIO_Pin);
+	}
+	else
+	for(int i=0;i<bufsize;i++)
+	{
+		pnrt=MDriverx+i;
+		GPIO_ResetBits(pnrt->EN_GPIOx,pnrt->EN_GPIO_Pin);
+	}
+	
   
   atomTimerDelay(speed);
-  
-  for(int i=0;i<bufsize;i++)
-  {
-    pnrt=MDriverx+i;
-    GPIO_ResetBits(pnrt->EN_GPIOx,pnrt->EN_GPIO_Pin);
-  }
+  if((speed!=0)&&(speed!=PWM_Period))
+	for(int i=0;i<bufsize;i++)
+	{
+		pnrt=MDriverx+i;
+		GPIO_ResetBits(pnrt->EN_GPIOx,pnrt->EN_GPIO_Pin);
+	}
   atomTimerDelay(PWM_Period-speed);
   return TRUE;
 }

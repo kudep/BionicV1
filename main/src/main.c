@@ -37,8 +37,9 @@
 #include "stm8l15x_conf.h"
 #include "usart.h"
 #include "adc.h"
-#include "mdriver.h"
+#include "mtrcontroller.h"
 #include "configuration.h"
+#include "cmdline.h"
 #include <string.h>
 
 
@@ -127,9 +128,14 @@ static void main_thread_func4 (uint32_t param);
 static ATOM_SEM blinkon_sem;
 static ATOM_SEM blinkoff_sem;
 void verif(uint8_t status);
-void itoa(int n, char s[]);
-void reverse(char s[]);
-void PWM_Init(void);
+ 
+Mtr_Positions_TypeDef mode0_clench={0x88,0x88,0x00,0x88,0x00,0x88,0x00,0x00};
+Mtr_Positions_TypeDef mode0_unclench={0x88,0x88,0x88,0x00,0x88,0xAA,0x00,0x00};
+Mtr_Positions_TypeDef mode1_clench={0x00,0x00,0x00,0x00,0x88,0x88,0x88,0x88};
+Mtr_Positions_TypeDef mode1_unclench={0x88,0x88,0x88,0x88,0x00,0x00,0x00,0x00};
+Mtr_Positions_TypeDef current_pos0={0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00};
+Mtr_Positions_TypeDef current_pos1={0xAA,0xAA,0xAA,0xAA,0xAA,0xAA,0xAA,0xAA};
+
 /**
  * \b main
  *
@@ -247,6 +253,7 @@ static void main_thread_func1 (uint32_t param)
 }
 #define _buf_size      (uint8_t)0x03 
 MDriver_TypeDef  MDrivers[_buf_size];
+uint8_t speed=0;
 static void main_thread_func2 (uint32_t param)
 {
   periph_mdrive_struct_init(MDrivers+0,GPIOA,GPIO_Pin_2,GPIOA,GPIO_Pin_3);
@@ -256,7 +263,7 @@ static void main_thread_func2 (uint32_t param)
     /* Test finished, flash slowly for pass, fast for fail */
     while (1)
     {
-        periph_mdrive_task(0x02,0x05,0x2A);
+        periph_mdrive_task(0x02,0x05,speed);
         
     }
 }
@@ -271,14 +278,20 @@ static void main_thread_func3 (uint32_t param)
             atomTimerDelay (1);  
     }
 }
+#define STANDART_LEN_SRT 5
+#define ARG_NUM 5
+char buf[STANDART_LEN_SRT]="hi!";
+char help[86]="list of commands: \n ledon \n ledoff \n blinkon \n blinkoff \n adcinfo \n adcresult \n";
+char about[74]="Atomthreads v1.3 ports on stm8l152 by Kuznetsov Denis \nData: 11-08-2016 \n";
+char adcinfo[74]="ADC parametrs:\n      Channels used: 1, 2, 3\n      Sampling rate 400 Hz\n";
+uint8_t args_buf[ARG_NUM];
+uint8_t args_buf_num=0;
+uint8_t mode_num=0;
 
-char buf[99]="hi!";
-char help[99]="list of commands: \n ledon \n ledoff \n blinkon \n blinkoff \n adcinfo \n adcresult \n";
-char about[99]="Atomthreads v1.3 ports on stm8l152 by Kuznetsov Denis \nData: 11-08-2016 \n";
-char adcinfo[99]="ADC parametrs:\n      Channels used: 1, 2, 3\n      Sampling rate 400 Hz\n";
 uint8_t RisC=FALSE;
 uint8_t adc_buf[ADC_Buf_Size];
-//MDriver_TypeDef MDriver_0={GPIOE,GPIO_Pin_1,GPIOE,GPIO_Pin_0};
+Mtr_Mode_TypeDef mode_buf[2]={{{0x88,0x88,0x00,0x88,0x00,0x88,0x00,0x00},{0x88,0x88,0x88,0x00,0x88,0xAA,0x00,0x00}},{{0x00,0x00,0x00,0x00,0x88,0x88,0x88,0x88},{0x88,0x88,0x88,0x88,0x00,0x00,0x00,0x00}}};
+
 static void main_thread_func4 (uint32_t param)
 {
     GPIO_Init(GPIOC,GPIO_Pin_7,GPIO_Mode_Out_PP_High_Fast);
@@ -286,7 +299,7 @@ static void main_thread_func4 (uint32_t param)
     GPIO_ResetBits(GPIOC,GPIO_Pin_7);
     GPIO_ResetBits(GPIOE,GPIO_Pin_1);
     //periph_mdrive_init(&MDriver_0);
-    periph_adc1_with_DMA_and_TIM2_init(adc_buf,sizeof(adc_buf),ADC_Channels);
+    //periph_adc1_with_DMA_and_TIM2_init(adc_buf,sizeof(adc_buf),ADC_Channels);
     periph_usart1_init();
     while (1)
     {
@@ -309,19 +322,6 @@ static void main_thread_func4 (uint32_t param)
               periph_usart1_bufsend((uint8_t*)about,strlen(about));
           if(0==strcmp(buf,"adcinfo"))
               periph_usart1_bufsend((uint8_t*)adcinfo,strlen(adcinfo));
-         /* if(0==strcmp(buf,"motorup"))
-          {
-              periph_mdrive_moveup(&MDriver_0);
-              periph_mdrive_start(&MDriver_0);
-          }
-          if(0==strcmp(buf,"motordown"))
-          {
-              periph_mdrive_movedown(&MDriver_0);
-              periph_mdrive_start(&MDriver_0);
-          }
-          if(0==strcmp(buf,"motorstop"))
-              periph_mdrive_stop(&MDriver_0);
-          */
           if(0==strcmp(buf,"adcresult"))
           {
             char tab='\t';
@@ -333,8 +333,8 @@ static void main_thread_func4 (uint32_t param)
             {
               itoa(adc_buf[index],numb);
               periph_usart1_bufsend((uint8_t*)numb,strlen(numb));
-            periph_usart1_bufsend((uint8_t*)&tab,1);
-            periph_usart1_bufsend((uint8_t*)&tab,1);
+			  periph_usart1_bufsend((uint8_t*)&tab,1);
+              periph_usart1_bufsend((uint8_t*)&tab,1);
             }
             periph_usart1_bufsend((uint8_t*)&lf,1);
           }
@@ -347,13 +347,91 @@ static void main_thread_func4 (uint32_t param)
             periph_usart1_bufsend((uint8_t*)numb,strlen(numb));
             periph_usart1_bufsend((uint8_t*)&lf,1);
           }
+          if(0==strcmp(buf,"0"))  speed=0;
+          if(0==strcmp(buf,"1"))  speed=1;
+          if(0==strcmp(buf,"2"))  speed=2;
+          if(0==strcmp(buf,"3"))  speed=3;
+          if(0==strcmp(buf,"4"))  speed=4;
+          if(0==strcmp(buf,"5"))  speed=5;
+          if(0==strcmp(buf,"5"))  speed=5;
+          if(0==strncmp(buf,"args",4))
+		  {
+			args_buf_num=cmd_args_read( buf+4, args_buf, ARG_NUM);
+            cmd_num_buf_print( "\t\t", args_buf,args_buf_num);
+		  }
           
+          if(0==strncmp(buf,"cmd_args_read",13))
+          {
+            args_buf_num=cmd_args_read( buf+11, args_buf, ARG_NUM);
+            cmd_num_buf_print( "\t\t", args_buf,args_buf_num);
+            cmd_num_buf_print( "\t\t", &args_buf_num,1);
+            uint8_t temp;
+            uint8_t temp1;
+            sensreader_get_cmd(&temp,&temp1,&temp1);
+            cmd_num_buf_print( "\t\t", &temp,1);
+          }
+          if(0==strncmp(buf,"st",2))
+          {
+			args_buf_num=cmd_args_read( buf+2, args_buf, ARG_NUM);
+			uint8_t drive_en_reg;
+			uint8_t drive_dir_reg; 
+			uint8_t speed;
+			if(args_buf[2]==0)	mrt_set_task(&current_pos0,&mode1_clench	,args_buf[0],args_buf[1], &drive_en_reg, &drive_dir_reg, &speed);
+			if(args_buf[2]==1)	mrt_set_task(&current_pos0,&mode1_unclench,args_buf[0],args_buf[1], &drive_en_reg, &drive_dir_reg, &speed);
+			if(args_buf[2]==2)mrt_set_task(&mode1_unclench,&mode1_clench	,args_buf[0],args_buf[1], &drive_en_reg, &drive_dir_reg, &speed);
+			if(args_buf[2]==3)mrt_set_task(&current_pos1,&mode1_unclench,args_buf[0],args_buf[1], &drive_en_reg, &drive_dir_reg, &speed);
+			if(args_buf[2]==4)mrt_set_task(&current_pos1,&current_pos1,args_buf[0],args_buf[1], &drive_en_reg, &drive_dir_reg, &speed);
+            cmd_num_buf_print( "\t", &drive_en_reg,1);
+            cmd_num_buf_print( "\t", &drive_dir_reg,1);
+            cmd_num_buf_print( "\t", &speed,1);
+          }
+          if(0==strcmp(buf,"sensinit"))
+          {
+			periph_usart1_bufsend("ready\n",6);
+			sensreader_init_senspin(ADC_Channel_0,ADC_Channel_1,
+									ADC_Channel_2,ADC_Channel_3,
+									ADC_Channel_0,ADC_Channel_1,
+									ADC_Channel_2,ADC_Channel_3,
+									ADC_Channel_0,ADC_Channel_1);
+			sensreader_init_adc(adc_buf, sizeof(adc_buf), ADC_Channels_Number, ADC_Channels);
+          }
+          if(0==strcmp(buf,"senscatch"))
+          {
+			periph_usart1_bufsend("ready\n",6);
+          Mtr_Positions_TypeDef temp=sensreader_get_pos();
+          cmd_num_buf_print( "\t", &(temp.mtr_pos0),1);
+          cmd_num_buf_print( "\t", &(temp.mtr_pos1),1);
+          cmd_num_buf_print( "\t", &(temp.mtr_pos2),1);
+          cmd_num_buf_print( "\t", &(temp.mtr_pos3),1);
+          cmd_num_buf_print( "\t", &(temp.mtr_pos4),1);
+          cmd_num_buf_print( "\t", &(temp.mtr_pos5),1);
+          cmd_num_buf_print( "\t", &(temp.mtr_pos6),1);
+          cmd_num_buf_print( "\t", &(temp.mtr_pos7),1);
+          }
+          if(0==strcmp(buf,"initmtr"))
+          {
+			  mtr_init_controller(mode_buf,2);
+          }
+          if(0==strcmp(buf,"chngmtr"))
+          {
+			  uint8_t drive_en_reg;
+			  uint8_t drive_dir_reg;
+			  uint8_t speed;
+                          mode_num++;
+                          mtr_change_mode(&mode_num);
+			  motion_controller(&drive_en_reg, &drive_dir_reg,&speed);
+			  periph_usart1_bufsend("ready\n",6);
+			  cmd_num_buf_print( "\t", &(drive_en_reg),1);
+			  cmd_num_buf_print( "\t", &(drive_dir_reg),1);
+			  cmd_num_buf_print( "\t", &(speed),1);
+			  cmd_num_buf_print( "\t", &(mode_num),1);
+          }
+		  
           
         }   
-            //atomTimerDelay (1);  
      }
 }
-  char mesg_ok[19]="ATOM_OK \n";
+ /* char mesg_ok[19]="ATOM_OK \n";
   char mesg_to[19]="ATOM_TIMEOUT\n";
   char mesg_wb[19]="ATOM_WOULDBLOCK \n";
   char mesg_ed[19]="ATOM_ERR_DELETED\n";
@@ -373,74 +451,21 @@ void verif(uint8_t status)
         if(status==ATOM_ERR_QUEUE )periph_usart1_bufsend((uint8_t*)mesg_eq,strlen(mesg_eq));
         if(status==ATOM_ERR_TIMER )periph_usart1_bufsend((uint8_t*)mesg_et,strlen(mesg_et));
 }
-/* itoa:  конвертируем n в символы в s */
- void itoa(int n, char s[])
- {
-     int i, sign;
+*/
  
-     if ((sign = n) < 0)  /* записываем знак */
-         n = -n;          /* делаем n положительным числом */
-     i = 0;
-     do {       /* генерируем цифры в обратном порядке */
-         s[i++] = n % 10 + '0';   /* берем следующую цифру */
-     } while ((n /= 10) > 0);     /* удаляем */
-     if (sign < 0)
-         s[i++] = '-';
-     s[i] = '\0';
-     reverse(s);
- }
+ 
+ 
 
- /* reverse:  переворачиваем строку s на месте */
- void reverse(char s[])
- {
-     int i, j;
-     char c;
- 
-     for (i = 0, j = strlen(s)-1; i<j; i++, j--) {
-         c = s[i];
-         s[i] = s[j];
-         s[j] = c;
-     }
- }
-//
-//#define Sensor1_Level_0 (uint16_t)0x0032
-//#define Sensor1_Level_1 (uint16_t)0x00C8
-//#define Sensor1_Level_2 (uint16_t)0x0190
-//#define Sensor1_Level_3 (uint16_t)0x02BC
-//#define Sensor1_Level_3 (uint16_t)0x02BC
-//#define MODE_Number (uint8_t)0x02
-//
-//
-//typedef struct
-//{
-//  uint16_t Sensor_Level_0;
-//  uint16_t Sensor_Level_1;
-//  uint16_t Sensor_Level_2;
-//  uint16_t Sensor_Level_3;
-//} Sensor_Levels_TypeDef;
-//uint8_t Mode_Number=MODE_Number;
-//Sensor_Levels_TypeDef Sensor_Levels={Sensor1_Level_0,Sensor1_Level_1,Sensor1_Level_2,Sensor1_Level_3};
-//
-//#define RESET_STATE (uint8_t)0x00
-//#define CLENCH_STATE (uint8_t)0x01
-//#define UNCLENCH_STATE (uint8_t)0x02
-//#define CHANGE_STATE (uint8_t)0x04
-//typedef struct
-//{
-//  uint8_t Mode;
-//  uint8_t State;
-//  uint8_t Speed;
-//} State_TypeDef;
-//
-//void motion_controller(State_TypeDef &state,uint16_t s1,uint16_t s2)
-//{
-//  uint16_t senser1=s1;
-//  uint16_t senser2=s2;
-//  if((senser1>Sensor1_Level_2)&&(senser1>Sensor1_Level_2))
-//  {
-//    state.Mode=(state.Mode+1)%Mode_Number;
-//    state.State=CHANGE_STATE;
-//  }
-//}
+#define Sensor1_Level_0 (uint8_t)0x0010
+#define Sensor1_Level_1 (uint8_t)0x0020
+#define Sensor1_Level_2 (uint8_t)0x0080
+#define Sensor1_Level_3 (uint8_t)0x00AA
+                            
+#define Sensor2_Level_0 (uint8_t)0x0010
+#define Sensor2_Level_1 (uint8_t)0x0020
+#define Sensor2_Level_2 (uint8_t)0x0080
+#define Sensor2_Level_3 (uint8_t)0x00AA
+#define MODE_Number (uint8_t)0x02
+
 
 

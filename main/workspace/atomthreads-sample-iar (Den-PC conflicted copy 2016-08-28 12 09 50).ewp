@@ -2018,44 +2018,17 @@
   <group>
     <name>libraries</name>
     <group>
-      <name>Service</name>
-      <group>
-        <name>inc</name>
-        <file>
-          <name>$PROJ_DIR$\..\..\libraries\Service\inc\cmdline.h</name>
-        </file>
-      </group>
-      <group>
-        <name>src</name>
-        <file>
-          <name>$PROJ_DIR$\..\..\libraries\Service\src\cmdline.c</name>
-        </file>
-      </group>
-    </group>
-    <group>
       <name>STM8L152_DriverExtInterface</name>
       <group>
         <name>inc</name>
         <file>
           <name>$PROJ_DIR$\..\..\libraries\STM8L152_DriverExtInterface\inc\mdriver.h</name>
         </file>
-        <file>
-          <name>$PROJ_DIR$\..\..\libraries\STM8L152_DriverExtInterface\inc\mtrcontroller.h</name>
-        </file>
-        <file>
-          <name>$PROJ_DIR$\..\..\libraries\STM8L152_DriverExtInterface\inc\sensreader.h</name>
-        </file>
       </group>
       <group>
         <name>src</name>
         <file>
           <name>$PROJ_DIR$\..\..\libraries\STM8L152_DriverExtInterface\src\mdriver.c</name>
-        </file>
-        <file>
-          <name>$PROJ_DIR$\..\..\libraries\STM8L152_DriverExtInterface\src\mtrcontroller.c</name>
-        </file>
-        <file>
-          <name>$PROJ_DIR$\..\..\libraries\STM8L152_DriverExtInterface\src\sensreader.c</name>
         </file>
       </group>
     </group>
@@ -2434,7 +2407,6 @@
             <state>..\..\STM8L15x_StdPeriph_Driver\inc\</state>
             <state>..\..\STM8L152_DriverIntInterface\inc\</state>
             <state>..\..\STM8L152_DriverExtInterface\inc\</state>
-            <state>..\..\Service\inc\</state>
             <state>..\..\STM8x_AtomPort\inc\</state>
             <state>..\inc\</state>
           </option>
@@ -2660,7 +2632,6 @@
             <state>..\..\libraries\STM8L15x_StdPeriph_Driver\inc\</state>
             <state>..\..\libraries\STM8L152_DriverIntInterface\inc\</state>
             <state>..\..\libraries\STM8L152_DriverExtInterface\inc\</state>
-            <state>..\..\libraries\Service\inc\</state>
             <state>..\..\libraries\STM8x_AtomPort\inc\</state>
             <state>..\..\kernel\inc</state>
             <state>..\inc</state>

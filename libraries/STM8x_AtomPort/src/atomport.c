@@ -243,7 +243,7 @@ void archInitSystemTickTimer ( void )
     CLK_SYSCLKDivConfig(CLK_SYSCLKDiv_1);
     CLK_PeripheralClockConfig(CLK_Peripheral_TIM4, ENABLE);
     TIM4_DeInit();
-    TIM4_TimeBaseInit(TIM4_Prescaler_8192,1);
+    TIM4_TimeBaseInit(TIM4_Prescaler_4096,1);
     TIM4_UpdateRequestConfig(TIM4_UpdateSource_Regular);
     TIM4_ITConfig(TIM4_IT_Update, ENABLE);
     TIM4_Cmd(ENABLE);
