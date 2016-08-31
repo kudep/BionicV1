@@ -1,16 +1,16 @@
 ///\file
 /*!
 	\author Kuznetsov Denis
-	\data 09-08-2016	
-	\version 1.0.0
-	\brief В данном файле собранны функции/константы для работы с переферийным модулем usart1
+	\data 11-08-2016	
+	\version 1.1.0
+	\brief This file contains the functions / constants to work with the peripheral module usart1
 
-Автором всех сущностей в этом файле является автор документа, если не указанно обратное.
+The author of all the entities in this file is the author of the document, unless indicated otherwise.
 */
 #include "usart.h"
 
 /*!
-  \brief Инициализация usart1
+  \brief This function initializes usart1
 */
 void periph_usart1_init(void)
 {
@@ -31,7 +31,7 @@ void periph_usart1_init(void)
 }
 
 /*!
-  \brief Деинициализация usart1
+  \brief This function deinitializes usart1
 */
 void periph_usart1_deinit(void)
 {
@@ -42,7 +42,7 @@ void periph_usart1_deinit(void)
 }
 
 /*!
-  \brief Передача массива байт через usart1
+  \brief This function transmits buffer by usart1
 */
 void periph_usart1_bufsend(uint8_t *buf, uint16_t n)
 {
@@ -53,9 +53,7 @@ void periph_usart1_bufsend(uint8_t *buf, uint16_t n)
   }
 }
 /*!
-  \brief ѕолучение массива байт через usart1
-  \param[in] buf указатель на получаемый массив байт
-  \param[in] n число байт получаемый из массива байт через uart1
+  \brief This function receives one byte by usart1
 */
 uint8_t periph_usart1_recept(void)
 {

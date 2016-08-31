@@ -1,11 +1,11 @@
 ///\file
 /*!
 	\author Kuznetsov Denis
-	\data 11-08-2016	
+	\data 9-08-2016	
 	\version 1.1.0
-	\brief В данном файле собранны функции/константы для работы с переферийным модулем mdriver
+	\brief This file contains the functions / constants to work with the peripheral module mdriver
 
-Автором всех сущностей в этом файле является автор документа, если не указанно обратное.
+The author of all the entities in this file is the author of the document, unless indicated otherwise.
 */
 #ifndef __MDRIVER_H
 #define __MDRIVER_H
