@@ -9,6 +9,9 @@ The author of all the entities in this file is the author of the document, unles
 */
 #ifndef __SENSREADER_H
 #define __SENSREADER_H
+
+//#define debug
+
 #include "mdriver.h"
 #include "adc.h"
 
@@ -41,7 +44,7 @@ typedef struct
  uint8_t encsens5;
  uint8_t encsens6;
  uint8_t encsens7;
-} Sensor_Pin_TypeDef;
+} Sensor_Channel_TypeDef;
 
 typedef struct
 {

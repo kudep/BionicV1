@@ -26,7 +26,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-
+//#define debug
 
 #include <stdio.h>
 
@@ -253,7 +253,9 @@ static void main_thread_func1 (uint32_t param)
 }
 #define _buf_size      (uint8_t)0x03 
 MDriver_TypeDef  MDrivers[_buf_size];
-uint8_t speed=0;
+uint8_t drive_en_reg_channel=0;
+uint8_t drive_dir_reg_channel=0;
+uint8_t speed_channel=0;
 static void main_thread_func2 (uint32_t param)
 {
   periph_mdrive_struct_init(MDrivers+0,GPIOA,GPIO_Pin_2,GPIOA,GPIO_Pin_3);
@@ -263,7 +265,7 @@ static void main_thread_func2 (uint32_t param)
     /* Test finished, flash slowly for pass, fast for fail */
     while (1)
     {
-        periph_mdrive_task(0x02,0x05,speed);
+        periph_mdrive_task(drive_en_reg_channel,drive_dir_reg_channel,speed_channel);
         
     }
 }
@@ -278,20 +280,12 @@ static void main_thread_func3 (uint32_t param)
             atomTimerDelay (1);  
     }
 }
-#define STANDART_LEN_SRT 5
-#define ARG_NUM 5
-char buf[STANDART_LEN_SRT]="hi!";
-char help[86]="list of commands: \n ledon \n ledoff \n blinkon \n blinkoff \n adcinfo \n adcresult \n";
-char about[74]="Atomthreads v1.3 ports on stm8l152 by Kuznetsov Denis \nData: 11-08-2016 \n";
-char adcinfo[74]="ADC parametrs:\n      Channels used: 1, 2, 3\n      Sampling rate 400 Hz\n";
-uint8_t args_buf[ARG_NUM];
-uint8_t args_buf_num=0;
-uint8_t mode_num=0;
 
 uint8_t RisC=FALSE;
-uint8_t adc_buf[ADC_Buf_Size];
-Mtr_Mode_TypeDef mode_buf[2]={{{0x88,0x88,0x00,0x88,0x00,0x88,0x00,0x00},{0x88,0x88,0x88,0x00,0x88,0xAA,0x00,0x00}},{{0x00,0x00,0x00,0x00,0x88,0x88,0x88,0x88},{0x88,0x88,0x88,0x88,0x00,0x00,0x00,0x00}}};
-
+void test1(void);
+void test2(void);
+void test3(void);
+void test_ini1(void);
 static void main_thread_func4 (uint32_t param)
 {
     GPIO_Init(GPIOC,GPIO_Pin_7,GPIO_Mode_Out_PP_High_Fast);
@@ -300,134 +294,17 @@ static void main_thread_func4 (uint32_t param)
     GPIO_ResetBits(GPIOE,GPIO_Pin_1);
     //periph_mdrive_init(&MDriver_0);
     //periph_adc1_with_DMA_and_TIM2_init(adc_buf,sizeof(adc_buf),ADC_Channels);
+	test_ini1();
     periph_usart1_init();
     while (1)
     {
         if(RisC)
         {
           RisC=FALSE;
-          if(0==strcmp(buf,"ledon"))
-              GPIO_SetBits(GPIOC,GPIO_Pin_7);
-          if(0==strcmp(buf,"ledoff"))
-              GPIO_ResetBits(GPIOC,GPIO_Pin_7);
-          
-          if(0==strcmp(buf,"blinkoff"))             
-              atomSemPut(&blinkoff_sem);
-          if(0==strcmp(buf,"blinkon"))              
-              atomSemPut(&blinkon_sem);
-          
-          if(0==strcmp(buf,"help"))
-              periph_usart1_bufsend((uint8_t*)help,strlen(help));
-          if(0==strcmp(buf,"about"))
-              periph_usart1_bufsend((uint8_t*)about,strlen(about));
-          if(0==strcmp(buf,"adcinfo"))
-              periph_usart1_bufsend((uint8_t*)adcinfo,strlen(adcinfo));
-          if(0==strcmp(buf,"adcresult"))
-          {
-            char tab='\t';
-            char lf='\n';
-            char numb[4];
-            periph_usart1_bufsend((uint8_t*)&tab,1);
-            periph_usart1_bufsend((uint8_t*)&tab,1);
-            for(uint8_t index=0;index<sizeof(adc_buf);index++)
-            {
-              itoa(adc_buf[index],numb);
-              periph_usart1_bufsend((uint8_t*)numb,strlen(numb));
-			  periph_usart1_bufsend((uint8_t*)&tab,1);
-              periph_usart1_bufsend((uint8_t*)&tab,1);
-            }
-            periph_usart1_bufsend((uint8_t*)&lf,1);
-          }
-          if(0==strcmp(buf,"adcresult1"))
-          {
-            char lf='\n';
-            char numb[8];
-            numb[0]=0;
-            itoa(periph_adc1_with_DMA_buf_read(adc_buf,sizeof(adc_buf), Encoder2, ADC_Channels_Number),numb);
-            periph_usart1_bufsend((uint8_t*)numb,strlen(numb));
-            periph_usart1_bufsend((uint8_t*)&lf,1);
-          }
-          if(0==strcmp(buf,"0"))  speed=0;
-          if(0==strcmp(buf,"1"))  speed=1;
-          if(0==strcmp(buf,"2"))  speed=2;
-          if(0==strcmp(buf,"3"))  speed=3;
-          if(0==strcmp(buf,"4"))  speed=4;
-          if(0==strcmp(buf,"5"))  speed=5;
-          if(0==strcmp(buf,"5"))  speed=5;
-          if(0==strncmp(buf,"args",4))
-		  {
-			args_buf_num=cmd_args_read( buf+4, args_buf, ARG_NUM);
-            cmd_num_buf_print( "\t\t", args_buf,args_buf_num);
-		  }
-          
-          if(0==strncmp(buf,"cmd_args_read",13))
-          {
-            args_buf_num=cmd_args_read( buf+11, args_buf, ARG_NUM);
-            cmd_num_buf_print( "\t\t", args_buf,args_buf_num);
-            cmd_num_buf_print( "\t\t", &args_buf_num,1);
-            uint8_t temp;
-            uint8_t temp1;
-            sensreader_get_cmd(&temp,&temp1,&temp1);
-            cmd_num_buf_print( "\t\t", &temp,1);
-          }
-          if(0==strncmp(buf,"st",2))
-          {
-			args_buf_num=cmd_args_read( buf+2, args_buf, ARG_NUM);
-			uint8_t drive_en_reg;
-			uint8_t drive_dir_reg; 
-			uint8_t speed;
-			if(args_buf[2]==0)	mrt_set_task(&current_pos0,&mode1_clench	,args_buf[0],args_buf[1], &drive_en_reg, &drive_dir_reg, &speed);
-			if(args_buf[2]==1)	mrt_set_task(&current_pos0,&mode1_unclench,args_buf[0],args_buf[1], &drive_en_reg, &drive_dir_reg, &speed);
-			if(args_buf[2]==2)mrt_set_task(&mode1_unclench,&mode1_clench	,args_buf[0],args_buf[1], &drive_en_reg, &drive_dir_reg, &speed);
-			if(args_buf[2]==3)mrt_set_task(&current_pos1,&mode1_unclench,args_buf[0],args_buf[1], &drive_en_reg, &drive_dir_reg, &speed);
-			if(args_buf[2]==4)mrt_set_task(&current_pos1,&current_pos1,args_buf[0],args_buf[1], &drive_en_reg, &drive_dir_reg, &speed);
-            cmd_num_buf_print( "\t", &drive_en_reg,1);
-            cmd_num_buf_print( "\t", &drive_dir_reg,1);
-            cmd_num_buf_print( "\t", &speed,1);
-          }
-          if(0==strcmp(buf,"sensinit"))
-          {
-			periph_usart1_bufsend("ready\n",6);
-			sensreader_init_senspin(ADC_Channel_0,ADC_Channel_1,
-									ADC_Channel_2,ADC_Channel_3,
-									ADC_Channel_0,ADC_Channel_1,
-									ADC_Channel_2,ADC_Channel_3,
-									ADC_Channel_0,ADC_Channel_1);
-			sensreader_init_adc(adc_buf, sizeof(adc_buf), ADC_Channels_Number, ADC_Channels);
-          }
-          if(0==strcmp(buf,"senscatch"))
-          {
-			periph_usart1_bufsend("ready\n",6);
-          Mtr_Positions_TypeDef temp=sensreader_get_pos();
-          cmd_num_buf_print( "\t", &(temp.mtr_pos0),1);
-          cmd_num_buf_print( "\t", &(temp.mtr_pos1),1);
-          cmd_num_buf_print( "\t", &(temp.mtr_pos2),1);
-          cmd_num_buf_print( "\t", &(temp.mtr_pos3),1);
-          cmd_num_buf_print( "\t", &(temp.mtr_pos4),1);
-          cmd_num_buf_print( "\t", &(temp.mtr_pos5),1);
-          cmd_num_buf_print( "\t", &(temp.mtr_pos6),1);
-          cmd_num_buf_print( "\t", &(temp.mtr_pos7),1);
-          }
-          if(0==strcmp(buf,"initmtr"))
-          {
-			  mtr_init_controller(mode_buf,2);
-          }
-          if(0==strcmp(buf,"chngmtr"))
-          {
-			  uint8_t drive_en_reg;
-			  uint8_t drive_dir_reg;
-			  uint8_t speed;
-                          mode_num++;
-                          mtr_change_mode(&mode_num);
-			  motion_controller(&drive_en_reg, &drive_dir_reg,&speed);
-			  periph_usart1_bufsend("ready\n",6);
-			  cmd_num_buf_print( "\t", &(drive_en_reg),1);
-			  cmd_num_buf_print( "\t", &(drive_dir_reg),1);
-			  cmd_num_buf_print( "\t", &(speed),1);
-			  cmd_num_buf_print( "\t", &(mode_num),1);
-          }
 		  
-          
+          test1();
+          test2();
+          test3();
         }   
      }
 }
@@ -453,19 +330,195 @@ void verif(uint8_t status)
 }
 */
  
- 
- 
+#define STANDART_LEN_SRT 5
+#define ARG_NUM 5
+char buf[STANDART_LEN_SRT]="hi!";
+char help[86]="list of commands: \n ledon \n ledoff \n blinkon \n blinkoff \n adcinfo \n adcresult \n";
+char about[74]="Atomthreads v1.3 ports on stm8l152 by Kuznetsov Denis \nData: 11-08-2016 \n";
+char adcinfo[74]="ADC parametrs:\n      Channels used: 1, 2, 3\n      Sampling rate 400 Hz\n";
+#ifdef debug
+uint8_t adc_buf[10];
+#else
+uint8_t adc_buf[ADC_Buf_Size];
+#endif
+void test1(void)
+{
+  if(0==strcmp(buf,"ledon"))
+              GPIO_SetBits(GPIOC,GPIO_Pin_7);
+          if(0==strcmp(buf,"ledoff"))
+              GPIO_ResetBits(GPIOC,GPIO_Pin_7);
+          
+          if(0==strcmp(buf,"blinkoff"))             
+              atomSemPut(&blinkoff_sem);
+          if(0==strcmp(buf,"blinkon"))              
+              atomSemPut(&blinkon_sem);
+          
+          if(0==strcmp(buf,"help"))
+              periph_usart1_bufsend((uint8_t*)help,strlen(help));
+          if(0==strcmp(buf,"about"))
+              periph_usart1_bufsend((uint8_t*)about,strlen(about));
+          if(0==strcmp(buf,"getadcinfo"))
+              periph_usart1_bufsend((uint8_t*)adcinfo,strlen(adcinfo));
+          if(0==strcmp(buf,"getadcresult"))
+          {
+            char tab='\t';
+            char lf='\n';
+            char numb[4];
+            periph_usart1_bufsend((uint8_t*)&tab,1);
+            periph_usart1_bufsend((uint8_t*)&tab,1);
+            for(uint8_t index=0;index<sizeof(adc_buf);index++)
+            {
+              itoa(adc_buf[index],numb);
+              periph_usart1_bufsend((uint8_t*)numb,strlen(numb));
+			  periph_usart1_bufsend((uint8_t*)&tab,1);
+              periph_usart1_bufsend((uint8_t*)&tab,1);
+            }
+            periph_usart1_bufsend((uint8_t*)&lf,1);
+          }
+          if(0==strcmp(buf,"getadcresult1"))
+          {
+            char lf='\n';
+            char numb[8];
+            numb[0]=0;
+            itoa(periph_adc1_with_DMA_buf_read(adc_buf,sizeof(adc_buf), Encoder2, ADC_Channels_Number),numb);
+            periph_usart1_bufsend((uint8_t*)numb,strlen(numb));
+            periph_usart1_bufsend((uint8_t*)&lf,1);
+          }
+}
 
-#define Sensor1_Level_0 (uint8_t)0x0010
-#define Sensor1_Level_1 (uint8_t)0x0020
-#define Sensor1_Level_2 (uint8_t)0x0080
-#define Sensor1_Level_3 (uint8_t)0x00AA
-                            
-#define Sensor2_Level_0 (uint8_t)0x0010
-#define Sensor2_Level_1 (uint8_t)0x0020
-#define Sensor2_Level_2 (uint8_t)0x0080
-#define Sensor2_Level_3 (uint8_t)0x00AA
-#define MODE_Number (uint8_t)0x02
+uint8_t args_buf[ARG_NUM];
+uint8_t args_buf_num=0;
+void test2(void)
+{
+          if(0==strncmp(buf,"pushargs",8))
+		  {
+			periph_usart1_bufsend("ready\n",6);
+			args_buf_num=cmd_args_read( buf+8, args_buf, ARG_NUM);
+            cmd_num_buf_print( "\t\t", args_buf,args_buf_num);
+		  }
+          if(0==strncmp(buf,"setstates",9))
+          {
+			periph_usart1_bufsend("ready\n",6);
+			args_buf_num=cmd_args_read( buf+9, args_buf, ARG_NUM);
+			uint8_t drive_en_reg;
+			uint8_t drive_dir_reg; 
+			uint8_t speed;
+			if(args_buf[2]==0)	mrt_set_task(&current_pos0,&mode1_clench	,args_buf[0],args_buf[1], &drive_en_reg, &drive_dir_reg, &speed);
+			if(args_buf[2]==1)	mrt_set_task(&current_pos0,&mode1_unclench,args_buf[0],args_buf[1], &drive_en_reg, &drive_dir_reg, &speed);
+			if(args_buf[2]==2)mrt_set_task(&mode1_unclench,&mode1_clench	,args_buf[0],args_buf[1], &drive_en_reg, &drive_dir_reg, &speed);
+			if(args_buf[2]==3)mrt_set_task(&current_pos1,&mode1_unclench,args_buf[0],args_buf[1], &drive_en_reg, &drive_dir_reg, &speed);
+			if(args_buf[2]==4)mrt_set_task(&current_pos1,&current_pos1,args_buf[0],args_buf[1], &drive_en_reg, &drive_dir_reg, &speed);
+            cmd_num_buf_print( "\t", &drive_en_reg,1);
+            cmd_num_buf_print( "\t", &drive_dir_reg,1);
+            cmd_num_buf_print( "\t", &speed,1);
+          }
+}
 
+uint8_t mode_num=0;
+#ifdef debug
+Mtr_Mode_TypeDef mode_buf[2]={{{2,3,4,5,6,7,8,9},{9,8,7,6,5,4,3,2}},{{12,13,14,15,16,17,18,19},{19,18,17,16,15,14,13,12}}};
+#else
+Mtr_Mode_TypeDef mode_buf[2]={{{0x88,0x88,0x00,0x88,0x00,0x88,0x00,0x00},{0x88,0x88,0x88,0x00,0x88,0xAA,0x00,0x00}},{{0x00,0x00,0x00,0x00,0x88,0x88,0x88,0x88},{0x88,0x88,0x88,0x88,0x00,0x00,0x00,0x00}}};
+#endif
 
-
+void test3(void)
+{
+	
+          if(0==strcmp(buf,"initsens"))
+          {
+			periph_usart1_bufsend("ready\n",6);
+			sensreader_init_senspin(ADC_Channel_0,ADC_Channel_1,
+									ADC_Channel_2,ADC_Channel_3,
+									ADC_Channel_0,ADC_Channel_1,
+									ADC_Channel_2,ADC_Channel_3,
+									ADC_Channel_0,ADC_Channel_1);
+#ifdef debug
+			sensreader_1levels_init(1, 2, 3, 4);
+			sensreader_2levels_init(1, 2, 3, 4);
+			sensreader_init_adc(adc_buf, sizeof(adc_buf), 10, ADC_Channels);
+#else
+			sensreader_init_adc(adc_buf, sizeof(adc_buf), ADC_Channels_Number, ADC_Channels);
+#endif
+          }
+          if(0==strcmp(buf,"catchsenspos"))
+          {
+			periph_usart1_bufsend("ready\n",6);
+          Mtr_Positions_TypeDef temp=sensreader_get_pos();
+          cmd_num_buf_print( "\t", &(temp.mtr_pos0),1);
+          cmd_num_buf_print( "\t", &(temp.mtr_pos1),1);
+          cmd_num_buf_print( "\t", &(temp.mtr_pos2),1);
+          cmd_num_buf_print( "\t", &(temp.mtr_pos3),1);
+          cmd_num_buf_print( "\t", &(temp.mtr_pos4),1);
+          cmd_num_buf_print( "\t", &(temp.mtr_pos5),1);
+          cmd_num_buf_print( "\t", &(temp.mtr_pos6),1);
+          cmd_num_buf_print( "\t", &(temp.mtr_pos7),1);
+          }
+          if(0==strcmp(buf,"initmtr"))
+          {
+			periph_usart1_bufsend("ready\n",6);
+			  mtr_init_controller(mode_buf,2);
+          }
+          if(0==strcmp(buf,"chngmtr"))
+          {
+			periph_usart1_bufsend("ready\n",6);
+			  uint8_t drive_en_reg;
+			  uint8_t drive_dir_reg;
+			  uint8_t speed;
+                          mode_num++;
+                          mtr_change_mode(&mode_num);
+			  motion_controller(&drive_en_reg, &drive_dir_reg,&speed);
+			  cmd_num_buf_print( "\t", &(drive_en_reg),1);
+			  cmd_num_buf_print( "\t", &(drive_dir_reg),1);
+			  cmd_num_buf_print( "\t", &(speed),1);
+			  cmd_num_buf_print( "\t", &(mode_num),1);
+          }
+          if(0==strcmp(buf,"catchsenscmd"))
+          {
+			  uint8_t cmd=0;
+			  uint8_t value=0;
+			  uint8_t maxvalue=0;
+			  sensreader_get_cmd(&cmd, &value,&maxvalue);
+			  cmd_num_buf_print( "\t", &(cmd),1);
+			  cmd_num_buf_print( "\t", &(value),1);
+			  cmd_num_buf_print( "\t", &(maxvalue),1);
+          }
+          if(0==strcmp(buf,"catchmtrcntr"))
+          {
+			  uint8_t drive_en_reg=0;
+			  uint8_t drive_dir_reg=0;
+			  uint8_t speed=0;
+			  motion_controller(&drive_en_reg, &drive_dir_reg,&speed);
+			  cmd_num_buf_print( "\t", &(drive_en_reg),1);
+			  cmd_num_buf_print( "\t", &(drive_dir_reg),1);
+			  cmd_num_buf_print( "\t", &(speed),1);
+          }
+		  
+#ifdef debug
+          if(0==strncmp(buf,"loadadcbuf",10))
+          {
+			args_buf_num=cmd_args_read( buf+10, adc_buf, 10);
+            cmd_num_buf_print( "\t", adc_buf,10);
+          }
+#endif
+}
+void test_ini1(void)
+{
+	sensreader_init_min_max(1);
+}
+void task_ini(void)
+{
+	sensreader_init_min_max(10000);
+	mtr_init_controller(mode_buf,2);
+	sensreader_init_senspin(ADC_Channel_0,ADC_Channel_1,
+									ADC_Channel_2,ADC_Channel_3,
+									ADC_Channel_0,ADC_Channel_1,
+									ADC_Channel_2,ADC_Channel_3,
+									ADC_Channel_0,ADC_Channel_1);
+	sensreader_1levels_init(1, 2, 3, 4);//????????????
+	sensreader_2levels_init(1, 2, 3, 4);//????????????
+	sensreader_init_adc(adc_buf, sizeof(adc_buf), ADC_Channels_Number, ADC_Channels);
+}
+void task(void)
+{
+	motion_controller(&drive_en_reg_channel, &drive_dir_reg_channel,&speed_channel);
+}

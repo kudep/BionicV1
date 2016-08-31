@@ -12,7 +12,13 @@ The author of all the entities in this file is the author of the document, unles
 #include "mdriver.h"
 #include "sensreader.h"
 
-#define MOTOR_POSITION_PRECISION	(int8_t)0x32
+
+//#define debug
+#ifdef debug
+#define MOTOR_POSITION_PRECISION	(int8_t)0x1
+#else
+#define MOTOR_POSITION_PRECISION	(int8_t)0x10
+#endif	
 #define MOTOR_NUMBER	(int8_t)0x05
 #define IDLE_TIME_DELAY	(int32_t)0xEA60
 #define CHANGE_MODE_TIME_DELAY	(int32_t)0x2710

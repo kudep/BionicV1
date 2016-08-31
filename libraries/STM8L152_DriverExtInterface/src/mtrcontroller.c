@@ -119,6 +119,7 @@ void motion_controller(uint8_t* drive_en_reg, uint8_t* drive_dir_reg, uint8_t* s
 			mrt_set_task(&mtr_pos,&(mode.cleanch_pos),value,maxvalue, drive_en_reg, drive_dir_reg, speed);
 			state=cmd_clench;
 		//Проверяем позицию каждого пальца и в зависимости от этого определяем двигаться ему или нет, разрешаем вычисление скорости по 1-му сенсору
+		break;
         case cmd_unclench:
 			time_point=atomTimeGet();
 			mtr_pos=sensreader_get_pos();
