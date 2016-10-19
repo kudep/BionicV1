@@ -42,7 +42,6 @@
 #include "cmdline.h"
 #include <string.h>
 
-
 /* Constants */
 
 /*
@@ -151,8 +150,14 @@ Mtr_Positions_TypeDef current_pos1={0xAA,0xAA,0xAA,0xAA,0xAA,0xAA,0xAA,0xAA};
  * functions in a compiler-agnostic way, though not all compilers support it.
  *
  */
+
+ #define BOOT_LDR_ADDR 0x487E
+ void init_bootloader();
+ 
 NO_REG_SAVE void main ( void )
 {
+    init_bootloader();
+    
     int8_t status;    
     GPIO_Init(GPIOB, GPIO_Pin_0|GPIO_Pin_0, GPIO_Mode_Out_PP_Low_Fast);
 
@@ -236,20 +241,27 @@ static void main_thread_func1 (uint32_t param)
     int sleep_ticks=500;
     GPIO_Init(GPIOE,GPIO_Pin_7,GPIO_Mode_Out_PP_High_Fast);
     GPIO_ResetBits(GPIOE,GPIO_Pin_7);
-    atomSemCreate (&blinkon_sem, 0);
-    atomSemCreate (&blinkoff_sem, 0);
-    /* Test finished, flash slowly for pass, fast for fail */
     while (1)
     {
-        atomSemGet(&blinkon_sem, 0);
-         while(atomSemGet(&blinkoff_sem, -1)==ATOM_WOULDBLOCK)
-          {
-            GPIO_SetBits(GPIOE,GPIO_Pin_7);
-            atomTimerDelay (sleep_ticks);
-            GPIO_ResetBits(GPIOE,GPIO_Pin_7);
-            atomTimerDelay (sleep_ticks);
-          }
+        GPIO_SetBits(GPIOE,GPIO_Pin_7);
+        atomTimerDelay (sleep_ticks);
+        GPIO_ResetBits(GPIOE,GPIO_Pin_7);
+        atomTimerDelay (sleep_ticks);
     }
+//    atomSemCreate (&blinkon_sem, 0);
+//    atomSemCreate (&blinkoff_sem, 0);
+//    /* Test finished, flash slowly for pass, fast for fail */
+//    while (1)
+//    {
+//        atomSemGet(&blinkon_sem, 0);
+//         while(atomSemGet(&blinkoff_sem, -1)==ATOM_WOULDBLOCK)
+//          {
+//            GPIO_SetBits(GPIOE,GPIO_Pin_7);
+//            atomTimerDelay (sleep_ticks);
+//            GPIO_ResetBits(GPIOE,GPIO_Pin_7);
+//            atomTimerDelay (sleep_ticks);
+//          }
+//    }
 }
 #define _buf_size      (uint8_t)0x03 
 MDriver_TypeDef  MDrivers[_buf_size];
@@ -522,3 +534,18 @@ void task(void)
 {
 	motion_controller(&drive_en_reg_channel, &drive_dir_reg_channel,&speed_channel);
 }
+
+ void init_bootloader()
+ {
+   //http://hex.pp.ua/stm8-freq-eeprom-bootloader.php
+   //http://we.easyelectronics.ru/STM8/rabota-s-eeprom-i-flash.html
+  FLASH_DeInit();
+  FLASH_Unlock(FLASH_MemType_Data);
+  FLASH_Unlock(FLASH_MemType_Program);
+  FLASH_ProgramOptionByte(0x04800,0xAA);
+  FLASH_ProgramOptionByte(0x480B,0x55);
+  FLASH_ProgramOptionByte(0x480C,0xAA);
+  //FLASH_ProgramOptionByte(BOOT_LDR_ADDR, 0x55);  
+  //FLASH_Lock(FLASH_MemType_Program);
+  //FLASH_Lock(FLASH_MemType_Data);
+ }
